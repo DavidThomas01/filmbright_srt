@@ -16,7 +16,7 @@ import requests
 # Set the page config (title, logo as icon, wide layout)
 st.set_page_config(
     page_title="Filmbright SRT Translator",
-    page_icon=st.image("https://images.squarespace-cdn.com/content/v1/56653a69e4b0385136282cf2/1531657850445-E88HDAV4UIOHIQPOU6AC/FB.png?format=1500w", width=180),
+    page_icon="https://images.squarespace-cdn.com/content/v1/56653a69e4b0385136282cf2/1531657850445-E88HDAV4UIOHIQPOU6AC/FB.png?format=1500w",
     layout="wide"
 )
 

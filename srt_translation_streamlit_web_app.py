@@ -16,7 +16,7 @@ import requests
 # Set the page config (title, logo as icon, wide layout)
 st.set_page_config(
     page_title="Filmbright SRT Translator",
-    page_icon="/Users/david/Documents/Filmbright/SRT_Files_Translation/Project_Files/filmbright_logo.png",
+    page_icon="filmbright_logo.png",
     layout="wide"
 )
 

@@ -122,7 +122,8 @@ def parse_srt(file_path):
 #         OPENAI TRANSLATION
 # ------------------------------------------
 def translate_text(text, target_language):
-    client = OpenAI(api_key=os.getenv("OPEN_AI_KEY_SRT_FILMBRIGHT"))
+    srt_openai_api_key = st.secrets["OPEN_AI_KEY_SRT_FILMBRIGHT"]
+    client = OpenAI(api_key=os.getenv(srt_openai_api_key))
 
     prompt = f"""
     You are a professional subtitle translator. Your task is to translate the content of an SRT file into {target_language}. 

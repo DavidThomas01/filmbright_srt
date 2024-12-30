@@ -13,9 +13,10 @@ import requests
 # ------------------------------------------
 #            VISUAL CUSTOMIZATIONS
 # ------------------------------------------
-# Set the page config (title, wide layout)
+# Set the page config (title, logo as icon, wide layout)
 st.set_page_config(
     page_title="Filmbright SRT Translator",
+    page_icon="/Users/david/Documents/Filmbright/SRT_Files_Translation/Project_Files/filmbright_logo.png",
     layout="wide"
 )
 
@@ -87,6 +88,7 @@ MAKE_WEBHOOK_URL = "https://hook.eu2.make.com/usgwgvrh2d6fn5n5dh8ggvabgeb6rl7l"
 
 flask_app = Flask(__name__)
 
+
 # ------------------------------------------
 #      GOOGLE DRIVE AUTH & FUNCTIONS
 # ------------------------------------------
@@ -122,8 +124,7 @@ def parse_srt(file_path):
 #         OPENAI TRANSLATION
 # ------------------------------------------
 def translate_text(text, target_language):
-    srt_openai_api_key = "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"
-    client = OpenAI(api_key=os.getenv(srt_openai_api_key))
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     prompt = f"""
     You are a professional subtitle translator. Your task is to translate the content of an SRT file into {target_language}. 
@@ -226,9 +227,14 @@ def run_flask():
 #          STREAMLIT INTERFACE
 # ------------------------------------------
 
+# Display the Filmbright logo
+st.image(
+    "/Users/david/Documents/Filmbright/SRT_Files_Translation/Project_Files/filmbright_logo.png",
+    width=180
+)
+
 st.title("Filmbright SRT Translator")
 st.write("#### Seamlessly translate SRT files into different languages for your video productions.")
-st.write("#### NOTE: If the file is large, it may take some time to complete the translation. Please supply your email so we can let you know once completed.")
 
 # Start the Flask server in a separate thread (only once)
 if "flask_thread" not in st.session_state:
@@ -291,18 +297,12 @@ if uploaded_file and user_email:
             )
 
             if response.status_code == 200:
-                st.success("File Translated Successfully!")
-                # Parse JSON response from Make to retrieve the Google Drive link
+                st.success("File sent to Make successfully!")
                 try:
-                    make_response_data = response.json()  # Parse the JSON response
-                    drive_link = make_response_data.get("drive_link")  # Get the Drive link
-
+                    make_response_data = response.json()
+                    drive_link = make_response_data.get("drive_link")
                     if drive_link:
-                        # Modify the link to remove everything preceding the first 'h'
-                        drive_link = drive_link[drive_link.index('h'):] if 'h' in drive_link else drive_link
-
-                        # Display a clickable download link in the app
-                        st.markdown(f"[Download the translated file from Google Drive]({drive_link}) Here")
+                        st.markdown(f"[Download the translated file from Google Drive]({drive_link})")
                     else:
                         st.warning("The Make webhook did not return a Google Drive link.")
                 except Exception as e:

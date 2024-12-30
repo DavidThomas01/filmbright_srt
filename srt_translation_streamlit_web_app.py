@@ -9,95 +9,113 @@ from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 from google.oauth2.service_account import Credentials
 import io
 import requests
+from PIL import Image  # Import this to handle the image file
 
-# ------------------------------------------
-#            VISUAL CUSTOMIZATIONS
-# ------------------------------------------
-# Set the page config (title, logo as icon, wide layout)
+# Set up the Streamlit page
 st.set_page_config(
     page_title="Filmbright SRT Translator",
-    page_icon="/Users/david/Documents/Filmbright/SRT_Files_Translation/Project_Files/filmbright_logo.png",
-    layout="wide"
+    layout="centered"
 )
 
-# Inject custom CSS to style the app
+# Display the Filmbright logo at the top
+logo_path = "/Users/david/Documents/Filmbright/SRT_Files_Translation/Project_Files/filmbright_logo.png"
+logo_image = Image.open(logo_path)
+
+# Use Streamlit columns to center the logo
+col1, col2, col3 = st.columns([1.4, 1.6, 1])  # Adjust column widths to center the logo
+with col2:
+    st.image(logo_image, width=180)
+
+# ----------------------
+#  STREAMLIT PAGE SETUP
+# ----------------------
+# Set up the Streamlit page with Filmbright branding.
+
+# Inject custom CSS to style the app (Filmbright green #8DC83D and white).
 st.markdown(
     """
     <style>
-    /* Make the main background white */
-    .main {
-        background-color: #FFFFFF;
-        padding: 2rem;
+    /* Use a clean, modern font */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
+
+    html, body, [class*="css"]  {
+        font-family: 'Montserrat', sans-serif;
+        background-color: #FFFFFF; /* White background */
     }
 
-    /* Style the top header and subheader texts */
-    h1, h2, h3, h4 {
-        color: #2F2F2F;
-        font-family: "Arial", sans-serif;
+    /* Logo styling */
+    .filmbright-logo {
+        display: block;
+        margin: 0 auto 1rem auto;
+        text-align: center;
     }
 
-    /* Customize the file uploader text and border */
-    .css-19u4pbh, .css-16huue1 {
-        border: 2px solid #8DC83D !important;
-        padding: 10px;
-        border-radius: 10px;
-        color: #2F2F2F;
-    }
-
-    /* Customize the button */
-    .stButton button {
-        background-color: #8DC83D !important;
-        color: white !important;
-        font-weight: 600 !important;
-        border-radius: 0.5rem !important;
-        padding: 0.5rem 1rem;
-        border: none;
-    }
-
-    /* Style the selectbox */
-    .stSelectbox > div:first-child {
-        color: #2F2F2F;
+    /* Title styling */
+    .main-title {
+        color: #8DC83D;
+        font-size: 2.2rem;
         font-weight: 600;
-    }
-    .stSelectbox div[data-baseweb="select"] .css-1wa3eu0, 
-    .stSelectbox div[data-baseweb="select"] .css-1hb7zxy  {
-        border: 2px solid #8DC83D !important;
-        border-radius: 8px !important;
+        text-align: center;
+        margin-bottom: 0.2rem;
     }
 
-    /* Style success and warning messages */
+    /* Subtitle styling */
+    .subtitle {
+        color: #333333;
+        font-size: 1rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    /* Streamlit Button styling */
+    .stButton button {
+        background-color: #8DC83D;
+        color: #FFFFFF;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.3s ease;
+    }
+    .stButton button:hover {
+        background-color: #7BB02E;
+    }
+
+    /* Streamlit warnings, errors, successes */
     .stAlert {
-        border-left: 5px solid #8DC83D;
-        border-radius: 0.5rem;
+        border-radius: 5px;
     }
-
-    /* Make the entire app a bit more centered and neat */
-    .block-container {
-        max-width: 800px;
-        margin: auto;
+    .stWarning, .stError, .stSuccess {
+        padding: 1rem;
+    }
+    /* Table or widget text color */
+    .css-1kyxreq {
+        color: #333333;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# ------------------------------------------
-#            FLASK + MAKE WEBHOOK
-# ------------------------------------------
-MAKE_WEBHOOK_URL = "https://hook.eu2.make.com/usgwgvrh2d6fn5n5dh8ggvabgeb6rl7l"
 
+# Main title and subtitle
+st.markdown('<h1 class="main-title">Filmbright - SRT File Translator</h1>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle">Easily translate SRT files into a different language and download them conveniently.</p>', unsafe_allow_html=True)
+
+# ----------------------
+#       FLASK APP
+# ----------------------
+MAKE_WEBHOOK_URL = "https://hook.eu2.make.com/usgwgvrh2d6fn5n5dh8ggvabgeb6rl7l"
 flask_app = Flask(__name__)
 
-
-# ------------------------------------------
-#      GOOGLE DRIVE AUTH & FUNCTIONS
-# ------------------------------------------
+# Google Drive authentication
 def authenticate_google_drive():
     creds = Credentials.from_service_account_file("credentials_srt_files_translation.json")
     drive_service = build("drive", "v3", credentials=creds)
     return drive_service
 
-
+# Download SRT file from Google Drive
 def download_srt_file(service, file_id, file_name):
     request = service.files().get_media(fileId=file_id)
     with io.FileIO(file_name, "wb") as fh:
@@ -107,47 +125,35 @@ def download_srt_file(service, file_id, file_name):
             status, done = downloader.next_chunk()
     return file_name
 
-
+# Upload file to Google Drive
 def upload_file_to_drive(service, file_name, folder_id):
     file_metadata = {"name": file_name, "parents": [folder_id]}
     media = MediaFileUpload(file_name, mimetype="text/plain")
     uploaded_file = service.files().create(body=file_metadata, media_body=media).execute()
     return uploaded_file.get("id")
 
-
+# Parse SRT file
 def parse_srt(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
         return file.readlines()
 
-
-# ------------------------------------------
-#         OPENAI TRANSLATION
-# ------------------------------------------
+# Translate subtitles using OpenAI (Updated for API >=1.0.0)
 def translate_text(text, target_language):
-    # 1. Try to get from st.secrets
-    api_key = st.secrets.get("OPENAI_API_KEY", None)
-    if not api_key:
-        # 2. Fallback: get from environment variable if you're running locally
-        api_key = os.getenv("OPENAI_API_KEY")
 
-    if not api_key:
-        # 3. If still none, raise an error or show a warning
-        st.error("No OpenAI API key found! Please set OPENAI_API_KEY in secrets or env.")
-        return "Error: Missing OpenAI API key."
+    client = OpenAI(api_key=os.getenv("OPEN_AI_KEY_SRT_FILMBRIGHT"))
 
-    # Now set openai.api_key
-    openai.api_key = api_key
-    client = OpenAI(api_key=api_key)
-
+    # Define the translation prompt
     prompt = f"""
     You are a professional subtitle translator. Your task is to translate the content of an SRT file into {target_language}. 
     Ensure the following:
 
     1. Maintain natural flow and readability typical of subtitles in movies or videos.
-    2. Keep each translated subtitle's duration and text length approximately similar to the original for synchronization.
+    2. Keep each translated subtitle's duration and text length approximately similar to the original for synchronization purposes.
     3. Preserve context and cultural nuances while adapting to the linguistic style of the target language.
     4. Ensure consistent formatting, avoiding any changes to the timecodes or the SRT file structure.
-    5. Output the result in SRT format only (numbers, timecodes, and text).
+
+    Generate the translated output in the same format, replacing the original text 
+    with the translated text. Only output the text and nummbers and timecodes, no additional comments from you or anything.
 
     Example Input:
     1
@@ -169,21 +175,27 @@ def translate_text(text, target_language):
 
     Input:
     {text}
+
+    Note: If a word-for-word translation would seem unnatural in {target_language}, adapt the translation to align with 
+    commonly used expressions in that language. Try to make use of the overall context in the original language to 
+    improve your response. Your output must always be in the format specified by the example output section, 
+    and only include the translations and the timecode with the matching numbers and values
     """
 
     try:
+        # Call OpenAI's ChatCompletion API
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a professional translation assistant."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7
+            temperature=0.7  # Adjust temperature for creative translations
         )
 
         response_content = response.choices[0].message.content
 
-        # Remove all content before the first '1' in the SRT
+        # Remove all content before the first '1'
         if '1' in response_content:
             response_content = response_content[response_content.index('1'):]
 
@@ -196,17 +208,17 @@ def translate_text(text, target_language):
         print(f"Unexpected Error: {e}")
         return f"Error: {e}"
 
-
+# Translate SRT file
 def translate_srt(file_path, target_language):
+    # Parse the entire SRT file
     lines = parse_srt(file_path)
     full_srt_text = "".join(lines)
+
+    # Translate the SRT file
     translated_srt = translate_text(full_srt_text, target_language)
     return translated_srt
 
-
-# ------------------------------------------
-#         FLASK WEBHOOK ENDPOINT
-# ------------------------------------------
+# Flask webhook endpoint
 @flask_app.route("/webhook", methods=["POST"])
 def handle_webhook():
     data = request.json
@@ -218,86 +230,67 @@ def handle_webhook():
         return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
     try:
+        # Authenticate Google Drive and download the file
         drive_service = authenticate_google_drive()
         local_file = download_srt_file(drive_service, file_id, file_name)
 
+        # Translate the SRT file
         translated_content = translate_srt(local_file, target_language)
         translated_file_name = f"translated_{target_language}.srt"
         with open(translated_file_name, "w", encoding="utf-8") as f:
             f.write(translated_content)
 
+        # Upload the translated file to Google Drive
         translated_file_id = upload_file_to_drive(drive_service, translated_file_name, "Translated_Files_Folder_ID")
+
         return jsonify({"status": "success", "translated_file_id": translated_file_id})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-
+# Run Flask in a separate thread
 def run_flask():
     flask_app.run(port=5000)
 
-
-# ------------------------------------------
-#          STREAMLIT INTERFACE
-# ------------------------------------------
-
-# Display the Filmbright logo
-st.image(
-    "/Users/david/Documents/Filmbright/SRT_Files_Translation/Project_Files/filmbright_logo.png",
-    width=180
-)
-
-st.title("Filmbright SRT Translator")
-st.write("#### Seamlessly translate SRT files into different languages for your video productions.")
-
-# Start the Flask server in a separate thread (only once)
+# ----------------------
+#  STREAMLIT INTERFACE
+# ----------------------
+# Start Flask server in a separate thread (only once per session)
 if "flask_thread" not in st.session_state:
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     st.session_state["flask_thread"] = flask_thread
 
 # Collect user email
-user_email = st.text_input(
-    "Enter your email address",
-    placeholder="example@example.com"
-)
+user_email = st.text_input("Enter your email address", placeholder="example@example.com")
 
 # Manual File Upload
-uploaded_file = st.file_uploader(
-    "Upload your SRT File here",
-    type=["srt"]
-)
-
+uploaded_file = st.file_uploader("Upload SRT File", type=["srt"])
 target_language = st.selectbox(
     "Select Target Language",
-    [
-        "French",
-        "Spanish (Spain)",
-        "Spanish (Latin America)",
-        "German",
-        "Italian",
-        "Portuguese (Brazil)"
-    ]
+    ["French", "Spanish (Spain)", "Spanish (Latin America)", "German", "Italian", "Portuguese (Brazil)"]
 )
 
+# Translation Process
 if uploaded_file and user_email:
     if st.button("Translate"):
-        st.info("Translating... Please wait.")
+        st.write("Translating... Please wait.")
 
         # Save the uploaded file locally
         input_file_name = uploaded_file.name
         with open(input_file_name, "wb") as f:
             f.write(uploaded_file.getbuffer())
-        st.success(f"File '{input_file_name}' uploaded successfully!")
+        st.write(f"File '{input_file_name}' uploaded successfully!")
 
+        # Prepare translated filename
         base_name, extension = os.path.splitext(input_file_name)
         translated_file_name = f"{target_language}_{base_name}{extension}"
 
-        # Translate the SRT file
+        # Perform translation
         translated_content = translate_srt(input_file_name, target_language)
         with open(translated_file_name, "w", encoding="utf-8") as f:
             f.write(translated_content)
 
-        # Send the translated file and user email to Make webhook
+        # Send data to Make webhook
         with open(translated_file_name, "rb") as f:
             response = requests.post(
                 MAKE_WEBHOOK_URL,
@@ -310,19 +303,22 @@ if uploaded_file and user_email:
             )
 
             if response.status_code == 200:
-                st.success("File sent to Make successfully!")
+                st.success(f"File Translated into {target_language} successfully!")
+                # Parse JSON response from Make to retrieve the Google Drive link
                 try:
                     make_response_data = response.json()
                     drive_link = make_response_data.get("drive_link")
                     if drive_link:
-                        st.markdown(f"[Download the translated file from Google Drive]({drive_link})")
+                        # Remove everything preceding the first 'h'
+                        cleaned_drive_link = drive_link[drive_link.index('h'):]
+                        # Display a clickable download link in the app
+                        st.markdown(f"[Download the translated file from Google Drive]({cleaned_drive_link})")
                     else:
                         st.warning("The Make webhook did not return a Google Drive link.")
                 except Exception as e:
                     st.error(f"Could not parse the response from Make. Error: {str(e)}")
             else:
                 st.error(f"Failed to send file to Make. Response: {response.text}")
-
 elif not user_email:
     st.warning("Please enter your email address.")
 elif not uploaded_file:

@@ -122,7 +122,7 @@ def parse_srt(file_path):
 #         OPENAI TRANSLATION
 # ------------------------------------------
 def translate_text(text, target_language):
-    srt_openai_api_key = st.secrets["OPEN_AI_KEY_SRT_FILMBRIGHT"]
+    srt_openai_api_key = st.secrets["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"]
     client = OpenAI(api_key=os.getenv(srt_openai_api_key))
 
     prompt = f"""

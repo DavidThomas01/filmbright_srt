@@ -124,7 +124,20 @@ def parse_srt(file_path):
 #         OPENAI TRANSLATION
 # ------------------------------------------
 def translate_text(text, target_language):
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    # 1. Try to get from st.secrets
+    api_key = st.secrets.get("OPENAI_API_KEY", None)
+    if not api_key:
+        # 2. Fallback: get from environment variable if you're running locally
+        api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        # 3. If still none, raise an error or show a warning
+        st.error("No OpenAI API key found! Please set OPENAI_API_KEY in secrets or env.")
+        return "Error: Missing OpenAI API key."
+
+    # Now set openai.api_key
+    openai.api_key = api_key
+    client = OpenAI(api_key=api_key)
 
     prompt = f"""
     You are a professional subtitle translator. Your task is to translate the content of an SRT file into {target_language}. 

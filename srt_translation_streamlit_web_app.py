@@ -13,10 +13,9 @@ import requests
 # ------------------------------------------
 #            VISUAL CUSTOMIZATIONS
 # ------------------------------------------
-# Set the page config (title, logo as icon, wide layout)
+# Set the page config (title, wide layout)
 st.set_page_config(
     page_title="Filmbright SRT Translator",
-    page_icon="https://images.squarespace-cdn.com/content/v1/56653a69e4b0385136282cf2/1531657850445-E88HDAV4UIOHIQPOU6AC/FB.png?format=1500w",
     layout="wide"
 )
 
@@ -87,7 +86,6 @@ st.markdown(
 MAKE_WEBHOOK_URL = "https://hook.eu2.make.com/usgwgvrh2d6fn5n5dh8ggvabgeb6rl7l"
 
 flask_app = Flask(__name__)
-
 
 # ------------------------------------------
 #      GOOGLE DRIVE AUTH & FUNCTIONS
@@ -226,12 +224,6 @@ def run_flask():
 # ------------------------------------------
 #          STREAMLIT INTERFACE
 # ------------------------------------------
-
-# Display the Filmbright logo
-st.image(
-    "/Users/david/Documents/Filmbright/SRT_Files_Translation/Project_Files/filmbright_logo.png",
-    width=180
-)
 
 st.title("Filmbright SRT Translator")
 st.write("#### Seamlessly translate SRT files into different languages for your video productions.")
